@@ -5,7 +5,6 @@ import spacy
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from langchain.chat_models import ChatOpenAI
-from langchain.document_loaders import PubMedLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain_community.retrievers import PubMedRetriever
 from langchain_core.documents import Document
@@ -21,6 +20,7 @@ from starlette.middleware.cors import CORSMiddleware
 app = FastAPI()
 load_dotenv()
 
+# Enable interfacing between front-end react app and backend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,6 +31,7 @@ app.add_middleware(
 
 # Load spaCy model
 nlp = spacy.load("en_core_web_sm")
+
 
 def extract_keywords(question):
     prompt_template = """
@@ -43,28 +44,28 @@ def extract_keywords(question):
     Keywords:
     """
 
-    # Initialize the OpenAI LLM with LangChain
     helper = OpenAI(api_key=os.getenv("KEY"), model="gpt-3.5-turbo-instruct", temperature=0.0)
 
-    # Create the LangChain prompt using the template
     prompt = PromptTemplate(input_variables=["question"], template=prompt_template)
 
-    # Chain the prompt with the LLM
     from langchain.chains import LLMChain
     chain = LLMChain(llm=helper, prompt=prompt)
 
-    # Function to extract biological keywords using the chain
     return chain.run(question)
 
 
+# Initialize main LLM that will provide answers.
 llm = ChatOpenAI(
     temperature=0,
     model="gpt-4",
     api_key=os.environ.get("KEY")
 )
 
+
+# Structure for API
 class Query(BaseModel):
     question: str
+
 
 def create_analysis_graph(vector_store, prompt, llm):
     class State(TypedDict):
@@ -104,11 +105,12 @@ def create_analysis_graph(vector_store, prompt, llm):
 
     return graph_builder.compile()
 
+
 @app.post("/api/query")
 async def query(query: Query):
     try:
         # Extract keywords and use in PubMed search
-        retriever = PubMedRetriever(top_k_results = 10)
+        retriever = PubMedRetriever(top_k_results=10)
         q = extract_keywords(query.question)
         docs = retriever.invoke(q)
 

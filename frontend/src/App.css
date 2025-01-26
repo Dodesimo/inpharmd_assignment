@@ -34,6 +34,7 @@ html, body, #root {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+  max-width: calc(100% - 320px); /* Prevents compression of sidebar */
 }
 
 .chatHeader {

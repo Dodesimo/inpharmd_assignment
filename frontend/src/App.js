@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 const App = () => {
@@ -11,17 +11,14 @@ const App = () => {
     const [activeChatId, setActiveChatId] = useState(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
     useEffect(() => {
         if (activeChatId !== null) {
-            const activeChat = chatHistory.find(chat => chat.id === activeChatId);
+            const activeChat = chatHistory.find((chat) => chat.id === activeChatId);
             if (activeChat) {
-                setMessages([
-                    {id: Date.now(), type: 'user', content: activeChat.userQuery},
-                    {id: Date.now() + 1, type: 'ai', content: activeChat.aiResponse, sources: activeChat.sources},
-                ]);
+                setMessages(activeChat.messages);
             }
         }
     }, [activeChatId, chatHistory]);
@@ -32,7 +29,9 @@ const App = () => {
 
         if (!query) return;
 
-        const newMessage = {id: Date.now(), type: 'user', content: query};
+        const newMessage = { id: Date.now(), type: 'user', content: query };
+
+        // Update the local message state with the new user message
         setMessages((prev) => [...prev, newMessage]);
 
         setInputValue('');
@@ -41,8 +40,8 @@ const App = () => {
         try {
             const response = await fetch('http://0.0.0.0:8000/api/query', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({question: query}),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: query }),
             });
 
             const data = await response.json();
@@ -53,25 +52,35 @@ const App = () => {
                 content: data.result,
                 sources: data.sources || [],
             };
+
+            // Add the AI message to the local messages state
             setMessages((prev) => [...prev, aiMessage]);
 
             const newChat = {
-                id: Date.now(),
+                id: activeChatId || Date.now(),  // Use activeChatId if a chat is active, otherwise create a new chat
                 userQuery: query,
                 aiResponse: data.result,
                 sources: data.sources || [],
+                messages: [...messages, newMessage, aiMessage], // Store the full conversation
             };
-            setChatHistory((prev) => [...prev, newChat]);
-            setActiveChatId(newChat.id);
+
+            if (activeChatId) {
+                // If an active chat exists, update it instead of creating a new one
+                setChatHistory((prev) =>
+                    prev.map((chat) =>
+                        chat.id === activeChatId ? { ...chat, messages: [...chat.messages, newMessage, aiMessage] } : chat
+                    )
+                );
+            } else {
+                // Otherwise, add a new chat with the full conversation
+                setChatHistory((prev) => [...prev, newChat]);
+                setActiveChatId(newChat.id);
+            }
         } catch (error) {
             console.error('Query error:', error);
             setMessages((prev) => [
                 ...prev,
-                {
-                    id: Date.now(),
-                    type: 'error',
-                    content: 'Something went wrong. Please try again.',
-                },
+                { id: Date.now(), type: 'error', content: 'Something went wrong. Please try again.' },
             ]);
         } finally {
             setIsLoading(false);
@@ -117,16 +126,12 @@ const App = () => {
                         <div
                             key={message.id}
                             className={`messageWrapper ${
-                                message.type === 'user'
-                                    ? 'userMessageAlign'
-                                    : 'aiMessageAlign'
+                                message.type === 'user' ? 'userMessageAlign' : 'aiMessageAlign'
                             }`}
                         >
                             <div
                                 className={`messageBox ${
-                                    message.type === 'user'
-                                        ? 'userMessage'
-                                        : 'aiMessage'
+                                    message.type === 'user' ? 'userMessage' : 'aiMessage'
                                 }`}
                             >
                                 {message.content}
@@ -152,7 +157,7 @@ const App = () => {
                         </div>
                     )}
 
-                    <div ref={messagesEndRef}/>
+                    <div ref={messagesEndRef} />
                 </div>
 
                 <form onSubmit={handleSubmit} className="inputContainer">
@@ -165,11 +170,7 @@ const App = () => {
                         className="inputField"
                         disabled={isLoading}
                     />
-                    <button
-                        type="submit"
-                        className="submitButton"
-                        disabled={isLoading}
-                    >
+                    <button type="submit" className="submitButton" disabled={isLoading}>
                         {isLoading ? '...' : 'Send'}
                     </button>
                 </form>

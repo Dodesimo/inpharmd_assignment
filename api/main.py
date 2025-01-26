@@ -112,7 +112,9 @@ async def query(query: Query):
         # Extract keywords and use in PubMed search
         retriever = PubMedRetriever(top_k_results=10)
         q = extract_keywords(query.question)
+        print("Key words", q)
         docs = retriever.invoke(q)
+        print(docs)
 
         # Split documents
         text_splitter = SemanticChunker(

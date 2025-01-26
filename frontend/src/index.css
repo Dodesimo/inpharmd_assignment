@@ -1,3 +1,15 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  font-family: 'Roboto', sans-serif;
+}
+
 .appContainer {
   display: flex;
   height: 100%;
@@ -14,7 +26,6 @@
   justify-content: space-between;
   overflow-y: auto;
   border-right: 1px solid #333;
-  height: 100%;
 }
 
 .chatContainer {
@@ -23,6 +34,7 @@
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+  max-width: calc(100% - 320px); /* Prevents compression of sidebar */
 }
 
 .chatHeader {
@@ -180,6 +192,7 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
 }
